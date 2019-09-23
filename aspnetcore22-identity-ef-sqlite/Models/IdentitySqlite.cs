@@ -13,7 +13,7 @@
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             base.OnConfiguring(optionsBuilder);
-            optionsBuilder.UseSqlite("Data Source=c:\\temp\\aspnetcore_identity.db");
+            optionsBuilder.UseSqlite("Data Source=c:\\temp\\aspnetcore_identity_withdata.db");
 
         }      
     }

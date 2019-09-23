@@ -27,12 +27,13 @@ namespace aspnetcore22_identity_ef_sqlite
         public void ConfigureServices(IServiceCollection services)
         {
             services.Configure<CookiePolicyOptions>(options =>
-            {                
+            {
                 options.CheckConsentNeeded = context => true;
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            services.AddIdentity<IdentityUser, IdentityRole>(options => {
+            services.AddIdentity<IdentityUser, IdentityRole>(options =>
+            {
                 options.SignIn.RequireConfirmedEmail = false;
                 options.SignIn.RequireConfirmedPhoneNumber = false;
                 options.Password.RequireDigit = false;
@@ -44,6 +45,15 @@ namespace aspnetcore22_identity_ef_sqlite
 
             }).AddEntityFrameworkStores<IdentitySqliteContext>();
             services.AddDbContext<IdentitySqliteContext>();
+            services.AddAuthorization(options =>
+            {
+                //options.AddPolicy("IsABC", policy =>
+                //    policy.RequireClaim("MyClaim", "abc"));
+                options.AddPolicy("IsABC", policy =>
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(claim =>
+                            claim.Type == "MyClaim" && claim.Value == "abc")));
+            });
             services.AddAuthentication();
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
         }

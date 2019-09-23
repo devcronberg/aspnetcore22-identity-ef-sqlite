@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,12 +14,14 @@ namespace aspnetcore22_identity_ef_sqlite.Controllers
         private readonly UserManager<IdentityUser> userManager;
         private readonly SignInManager<IdentityUser> signInManager;
         private readonly RoleManager<IdentityRole> roleManager;
+        private readonly IAuthorizationService authorization;
 
-        public AppController(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, RoleManager<IdentityRole> roleManager)
+        public AppController(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, RoleManager<IdentityRole> roleManager, IAuthorizationService authorization)
         {
             this.userManager = userManager;
             this.signInManager = signInManager;
             this.roleManager = roleManager;
+            this.authorization = authorization;
         }
 
         [HttpGet("~/")]
@@ -30,12 +34,17 @@ namespace aspnetcore22_identity_ef_sqlite.Controllers
             //res += " " + await UserSignOut();
             //res = await RoleCreate();
             //res = await UserAddToRole();
-            ViewBag.result = res;            
+            //await ClaimAdd();
+            //res += " Claim: " + await UserHasClaim();
+            //res += " Policy: " + await UserCheckPolicy();
+
+            ViewBag.result = res;
             return View();
         }
 
 
-        private async Task<string> UserCreate() {
+        private async Task<string> UserCreate()
+        {
             var user = new IdentityUser { UserName = "a", Email = "a@a.dk" };
             var result = await userManager.CreateAsync(user, "a");
             return "ok - user created";
@@ -52,7 +61,7 @@ namespace aspnetcore22_identity_ef_sqlite.Controllers
         }
 
         private string UserSignedIn()
-        {            
+        {
             return "SignedIn: " + signInManager.IsSignedIn(User).ToString();
         }
 
@@ -62,7 +71,8 @@ namespace aspnetcore22_identity_ef_sqlite.Controllers
             return "After sign out... Signed in" + signInManager.IsSignedIn(User).ToString();
         }
 
-        private async Task<string> RoleCreate() {
+        private async Task<string> RoleCreate()
+        {
             var res = await roleManager.CreateAsync(new IdentityRole { Name = "MyRole" });
             if (res.Succeeded)
                 return "ok - role created";
@@ -79,8 +89,29 @@ namespace aspnetcore22_identity_ef_sqlite.Controllers
                 return "nok - role not added created to user";
         }
 
-        // Missing
-        //var res = await userManager.AddClaimAsync(signedUser, new Claim("MyClaim", "abc"));
+        private async Task<bool> UserInRole()
+        {
+            var user = await userManager.FindByNameAsync("a");
+            return await userManager.IsInRoleAsync(user, "MyRole");
+        }
 
+        private async Task ClaimAdd()
+        {
+            var user = await userManager.FindByNameAsync("a");
+            var res = await userManager.AddClaimAsync(user, new Claim("MyClaim", "abc"));
+        }
+
+        private async Task<bool> UserHasClaim()
+        {
+            var user = await userManager.FindByNameAsync("a");
+            var res = await userManager.GetClaimsAsync(user);
+            return res.Count(i => i.Type == "MyClaim") == 1;
+        }
+
+        private async Task<bool> UserCheckPolicy()
+        {            
+            var res = await authorization.AuthorizeAsync(User, "IsAbc");
+            return res.Succeeded;
+        }
     }
 }
